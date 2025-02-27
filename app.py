@@ -4,22 +4,7 @@ import subprocess
 import yfinance as yf
 import streamlit as st
 import pandas as pd
-
-# Install required dependencies if missing
-try:
-    import pandas_datareader.data as pdr
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas_datareader"])
-    import pandas_datareader.data as pdr
-
 from datetime import datetime
-
-# Install setuptools if missing
-try:
-    import distutils
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools==69.2.0"])
-    import setuptools
 
 # Initialize search tracking
 if 'search_counts' not in st.session_state:
@@ -43,10 +28,9 @@ def fetch_stock_data(ticker_symbol, start_date, end_date):
         if history.empty:
             raise ValueError("No historical data available")
         
-    except Exception:
-        st.warning("⚠️ Using alternative data source due to Yahoo Finance limit.")
-        history = pdr.get_data_yahoo(ticker_symbol, start=start_date, end=end_date)
-        info = {'sector': 'N/A', 'currentPrice': 'N/A', 'marketCap': 'N/A', 'trailingPE': 'N/A', 'fiftyTwoWeekHigh': 'N/A', 'beta': 'N/A'}
+    except Exception as e:
+        st.error(f"Error fetching data: {str(e)}")
+        return None, None
     
     return info, history
 
@@ -73,36 +57,39 @@ try:
         track_search(ticker_symbol)
         info, history = fetch_stock_data(ticker_symbol, start_date, end_date)
 
-    # Company Overview
-    st.markdown("## 📋 Company Overview")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Sector", info.get("sector", "N/A"))
-    with col2:
-        st.metric("Current Price", f"{info.get('currency', '$')}{info.get('currentPrice', 'N/A')}")
-    with col3:
-        st.metric("Market Cap", f"{info.get('marketCap', 0) / 1e9:.1f}B")
+    if info and history is not None:
+        # Company Overview
+        st.markdown("## 📋 Company Overview")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Sector", info.get("sector", "N/A"))
+        with col2:
+            st.metric("Current Price", f"{info.get('currency', '$')}{info.get('currentPrice', 'N/A')}")
+        with col3:
+            st.metric("Market Cap", f"{info.get('marketCap', 0) / 1e9:.1f}B")
 
-    # Price Chart
-    st.markdown("## 📈 Price Movement")
-    st.line_chart(history['Close'])
+        # Price Chart
+        st.markdown("## 📈 Price Movement")
+        st.line_chart(history['Close'])
 
-    # Additional Statistics
-    st.markdown("## 🔑 Key Statistics")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("PE Ratio", info.get("trailingPE", "N/A"))
-    with col2:
-        st.metric("52W High", f"{info.get('currency', '$')}{info.get('fiftyTwoWeekHigh', 'N/A')}")
-    with col3:
-        st.metric("Beta", info.get("beta", "N/A"))
-    
-    # Trading Volume Chart
-    st.markdown("## 📊 Trading Volume")
-    st.bar_chart(history['Volume'])
+        # Additional Statistics
+        st.markdown("## 🔑 Key Statistics")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("PE Ratio", info.get("trailingPE", "N/A"))
+        with col2:
+            st.metric("52W High", f"{info.get('currency', '$')}{info.get('fiftyTwoWeekHigh', 'N/A')}")
+        with col3:
+            st.metric("Beta", info.get("beta", "N/A"))
+        
+        # Trading Volume Chart
+        st.markdown("## 📊 Trading Volume")
+        st.bar_chart(history['Volume'])
 
-    # Download Historical Data
-    st.download_button("📥 Download Historical Data", history.to_csv().encode('utf-8'), f"{ticker_symbol}_data.csv", "text/csv")
+        # Download Historical Data
+        st.download_button("📥 Download Historical Data", history.to_csv().encode('utf-8'), f"{ticker_symbol}_data.csv", "text/csv")
+    else:
+        st.error("⚠️ Unable to fetch data. Please check the stock symbol and try again.")
 
 except Exception as e:
     st.error(f"🚨 Error: {str(e)}")
