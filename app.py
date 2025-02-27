@@ -1,6 +1,5 @@
 import time
 import sys
-import subprocess
 import yfinance as yf
 import streamlit as st
 import pandas as pd
@@ -22,11 +21,12 @@ def fetch_stock_data(ticker_symbol, start_date, end_date):
         info = ticker.info
         history = ticker.history(start=start_date, end=end_date, auto_adjust=True)
     
-        if not info:
-            raise ValueError("Invalid stock symbol")
-    
         if history.empty:
             raise ValueError("No historical data available")
+        
+        # Additional validation for essential info fields
+        if not all(key in info for key in ['sector', 'currentPrice']):
+            raise ValueError("Invalid stock symbol or missing key data")
         
     except Exception as e:
         st.error(f"Error fetching data: {str(e)}")
@@ -44,6 +44,11 @@ with st.sidebar:
     start_date = st.date_input("Start Date", datetime(2010, 5, 31))
     end_date = st.date_input("End Date", datetime.today())
     
+    # Date validation
+    if start_date > end_date:
+        st.error("Error: Start date must be before end date.")
+        st.stop()
+    
     # Top Searched Tickers
     st.markdown("---")
     st.markdown("## 🏆 Top Searched")
@@ -54,10 +59,11 @@ with st.sidebar:
 # Fetch Data
 try:
     with st.spinner(f"📊 Analyzing {ticker_symbol}..."):
-        track_search(ticker_symbol)
         info, history = fetch_stock_data(ticker_symbol, start_date, end_date)
 
     if info and history is not None:
+        track_search(ticker_symbol)  # Track only successful searches
+        
         # Company Overview
         st.markdown("## 📋 Company Overview")
         col1, col2, col3 = st.columns(3)
@@ -66,7 +72,9 @@ try:
         with col2:
             st.metric("Current Price", f"{info.get('currency', '$')}{info.get('currentPrice', 'N/A')}")
         with col3:
-            st.metric("Market Cap", f"{info.get('marketCap', 0) / 1e9:.1f}B")
+            market_cap = info.get('marketCap')
+            market_cap_str = f"{market_cap/1e9:.1f}B" if market_cap is not None else "N/A"
+            st.metric("Market Cap", market_cap_str)
 
         # Price Chart
         st.markdown("## 📈 Price Movement")
