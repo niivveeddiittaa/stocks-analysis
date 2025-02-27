@@ -4,10 +4,15 @@ import subprocess
 import yfinance as yf
 import streamlit as st
 import pandas as pd
-import pandas_datareader.data as pdr
-from datetime import datetime
 
-yf.pdr_override()  # Fixes common data fetch issues
+# Install required dependencies if missing
+try:
+    import pandas_datareader.data as pdr
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas_datareader"])
+    import pandas_datareader.data as pdr
+
+from datetime import datetime
 
 # Install setuptools if missing
 try:
