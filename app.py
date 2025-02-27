@@ -1,3 +1,5 @@
+import yfinance as yf
+yf.pdr_override()  # Fixes common data fetch issues
 import sys
 import subprocess
 
@@ -6,7 +8,7 @@ try:
 except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools==69.2.0"])
     import setuptools  # noqa: F401
-    
+
 import yfinance as yf
 import streamlit as st
 import pandas as pd
