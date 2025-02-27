@@ -1,0 +1,6 @@
+setuptools==69.2.0
+distutils==1.4.0  # Backport for Python 3.12
+numpy==1.26.4  # Newer version compatible with Python 3.12
+pandas==2.2.1
+yfinance==0.2.38
+streamlit==1.35.0
